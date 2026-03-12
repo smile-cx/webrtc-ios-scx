@@ -1,5 +1,8 @@
 name: OnDemand Release WebRTC [127]
 
+permissions:
+  contents: write
+
 on:
   workflow_dispatch:    
 
