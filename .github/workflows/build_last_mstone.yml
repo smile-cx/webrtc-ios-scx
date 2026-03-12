@@ -83,9 +83,24 @@ jobs:
         if: env.should_build == 'true'
         run: |
           cd src
-          echo "Applying apple_prefix_smilecx patch..."
-          patch -p1 < "${GITHUB_WORKSPACE}/patches/apple_prefix_smilecx.patch"
-          echo "Patch applied successfully!"
+          echo "Applying apple_prefix_smilecx patch with fuzzy matching..."
+
+          # Try git apply first (more forgiving)
+          if git apply --check --verbose "${GITHUB_WORKSPACE}/patches/apple_prefix_smilecx.patch" 2>&1; then
+            echo "Using git apply..."
+            git apply "${GITHUB_WORKSPACE}/patches/apple_prefix_smilecx.patch"
+          else
+            echo "git apply failed, trying patch with fuzz..."
+            # Fall back to patch with fuzzy matching (allows 3 lines of context mismatch)
+            patch -p1 --fuzz=3 --verbose < "${GITHUB_WORKSPACE}/patches/apple_prefix_smilecx.patch" || {
+              echo "❌ Patch failed!"
+              echo "Showing reject files:"
+              find . -name "*.rej" -exec echo "=== {} ===" \; -exec cat {} \;
+              exit 1
+            }
+          fi
+
+          echo "✓ Patch applied successfully!"
           echo "Verifying patch application..."
           grep -q "SCX" sdk/objc/base/RTCMacros.h && echo "✓ ObjC prefix updated to SCX" || echo "✗ ObjC prefix NOT updated"
           grep -q "SmileCXWebRTC" sdk/BUILD.gn && echo "✓ Framework name updated to SmileCXWebRTC" || echo "✗ Framework name NOT updated"
