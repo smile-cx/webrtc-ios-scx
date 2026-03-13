@@ -5,7 +5,7 @@
 set -e
 
 WEBRTC_BRANCH="${1:-7680}"
-TEST_DIR="/tmp/webrtc-ios-patch-test-$$"
+TEST_DIR="$(pwd)/webrtc-ios-patch-test-$$"
 
 echo "📦 Creating test directory: $TEST_DIR"
 mkdir -p "$TEST_DIR"
@@ -28,12 +28,20 @@ gclient sync --with_branch_heads --with_tags
 
 cd src
 echo "🩹 Testing patch application..."
-PATCH_FILE="${GITHUB_WORKSPACE:-$OLDPWD}/patches/apple_prefix_smilecx.patch"
+
+# Find the repo directory (where this script is located)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+PATCH_FILE="${GITHUB_WORKSPACE:-$REPO_DIR}/patches/apple_prefix_smilecx.patch"
 
 if [ ! -f "$PATCH_FILE" ]; then
     echo "❌ Patch file not found: $PATCH_FILE"
+    echo "Repo dir: $REPO_DIR"
+    echo "GITHUB_WORKSPACE: ${GITHUB_WORKSPACE:-not set}"
     exit 1
 fi
+
+echo "Using patch file: $PATCH_FILE"
 
 echo "Applying patch with git apply --check..."
 if git apply --check --verbose "$PATCH_FILE" 2>&1; then
@@ -65,7 +73,7 @@ echo ""
 echo "🧹 Cleanup test directory? (y/n)"
 read -r cleanup
 if [ "$cleanup" = "y" ]; then
-    cd /
+    cd "$(dirname "$TEST_DIR")"
     rm -rf "$TEST_DIR"
     echo "✅ Cleaned up $TEST_DIR"
 else

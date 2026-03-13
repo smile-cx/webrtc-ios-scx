@@ -1,8 +1,11 @@
 diff --git a/sdk/objc/base/RTCMacros.h b/sdk/objc/base/RTCMacros.h
-index 09418b86ac77a1a1dc8672775ce05bca0061377d..269e8acd718e51c65fba57304bee03ce6d94db80 100644
+index cb943b4bee..57f02b97ee 100644
 --- a/sdk/objc/base/RTCMacros.h
 +++ b/sdk/objc/base/RTCMacros.h
-@@ -40,9 +40,7 @@
+@@ -37,15 +37,15 @@
+ //
+ // Clients can patch the definition of this macro locally and build
+ // WebRTC.framework with their own prefix in case symbol clashing is a
  // problem.
  //
  // This macro must be defined uniformily across all the translation units.
@@ -10,9 +13,14 @@ index 09418b86ac77a1a1dc8672775ce05bca0061377d..269e8acd718e51c65fba57304bee03ce
 -#define RTC_OBJC_TYPE_PREFIX
 -#endif
 +#define RTC_OBJC_TYPE_PREFIX SCX
++
++#define RTC_CONSTANT_TYPE_PREFIX kSCX
 
  // RCT_OBJC_TYPE
  //
+ // Macro used internally to declare API types. Declaring an API type without
+ // using this macro will not include the declared type in the set of types
+ // that will be affected by the configurable RTC_OBJC_TYPE_PREFIX.
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
 index a710d600d671a97b355467269907c1cde4c50e0c..3af067c7929640b5afc443eefd95152315d90286 100644
 --- a/sdk/BUILD.gn
@@ -37,7 +45,7 @@ index a710d600d671a97b355467269907c1cde4c50e0c..3af067c7929640b5afc443eefd951523
      }
 @@ -1587,7 +1587,7 @@ if (is_ios || is_mac) {
      if (is_mac) {
-       apple_framework_bundle_with_umbrella_header("mac_framework_objc") {
+      apple_framework_bundle_with_umbrella_header("mac_framework_objc") {
          info_plist = "objc/Info.plist"
 -        output_name = "WebRTC"
 +        output_name = "SmileCXWebRTC"
