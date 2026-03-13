@@ -1,4 +1,4 @@
-name: OnDemand Release WebRTC [127]
+name: OnDemand Release SmileCXWebRTC [127]
 
 permissions:
   contents: write
@@ -50,10 +50,10 @@ jobs:
           
           
       - name: Setup enviroment
-        run: |                    
-          echo "should_build=${{ env.next_release_branch > env.current_release_branch }}" >> $GITHUB_ENV    
-          echo "output_name=WebRTC-M${{ env.next_release_milestone }}.xcframework.zip" >> $GITHUB_ENV    
-          echo "next_release_name=M${{ env.next_release_milestone }}" >> $GITHUB_ENV    
+        run: |
+          echo "should_build=${{ env.next_release_branch > env.current_release_branch }}" >> $GITHUB_ENV
+          echo "output_name=SmileCXWebRTC-M${{ env.next_release_milestone }}.xcframework.zip" >> $GITHUB_ENV
+          echo "next_release_name=M${{ env.next_release_milestone }}" >> $GITHUB_ENV
           echo "next_release_tag=${{ env.next_release_milestone }}.${{ env.next_release_branch }}.0" >> $GITHUB_ENV    
           
 
@@ -75,12 +75,39 @@ jobs:
       
       - name: Checkout WebRTC
         if: env.should_build == 'true'
-        run: | 
-          source "${GITHUB_WORKSPACE}/scripts/checkout_webrtc.sh";                     
+        run: |
+          source "${GITHUB_WORKSPACE}/scripts/checkout_webrtc.sh";
           echo "${PATH}" >> $GITHUB_PATH
           echo ::set-output name=should_build::false
         env:
           WEBRTC_BRANCH: ${{ env.next_release_branch  }}
+
+      - name: Apply SmileCX patches
+        if: env.should_build == 'true'
+        run: |
+          cd src
+          echo "Applying apple_prefix_smilecx patch with fuzzy matching..."
+
+          # Try git apply first (more forgiving)
+          if git apply --check --verbose "${GITHUB_WORKSPACE}/patches/apple_prefix_smilecx.patch" 2>&1; then
+            echo "Using git apply..."
+            git apply "${GITHUB_WORKSPACE}/patches/apple_prefix_smilecx.patch"
+          else
+            echo "git apply failed, trying patch with fuzz..."
+            # Fall back to patch with fuzzy matching (allows 3 lines of context mismatch)
+            patch -p1 --fuzz=3 --verbose < "${GITHUB_WORKSPACE}/patches/apple_prefix_smilecx.patch" || {
+              echo "❌ Patch failed!"
+              echo "Showing reject files:"
+              find . -name "*.rej" -exec echo "=== {} ===" \; -exec cat {} \;
+              exit 1
+            }
+          fi
+
+          echo "✓ Patch applied successfully!"
+          echo "Verifying patch application..."
+          grep -q "SCX" sdk/objc/base/RTCMacros.h && echo "✓ ObjC prefix updated to SCX" || echo "✗ ObjC prefix NOT updated"
+          grep -q "SmileCXWebRTC" sdk/BUILD.gn && echo "✓ Framework name updated to SmileCXWebRTC" || echo "✗ Framework name NOT updated"
+          grep -q "cx.smile.SmileCXWebRTC" sdk/objc/Info.plist && echo "✓ Bundle ID updated" || echo "✗ Bundle ID NOT updated"
 
       - name: Build ios x64 simulator
         if: env.should_build == 'true'
@@ -116,14 +143,14 @@ jobs:
         id: create_xcframework
         if: env.should_build == 'true'
         run: |
-          source "${GITHUB_WORKSPACE}/scripts/create_xcframework.sh" 
-          cd "${{ env.output_dir }}"          
-          zip --symlinks -r ${{ env.output_name }} WebRTC.xcframework/
+          source "${GITHUB_WORKSPACE}/scripts/create_xcframework.sh"
+          cd "${{ env.output_dir }}"
+          zip --symlinks -r ${{ env.output_name }} SmileCXWebRTC.xcframework/
           CHECKSUM=$(shasum -a 256 ${{ env.output_name }} | awk '{ print $1 }')
 
           echo ::set-output name=checksum::$CHECKSUM
         env:
-          XCFRAMEWORK_NAME: "WebRTC"
+          XCFRAMEWORK_NAME: "SmileCXWebRTC"
           PLISTBUDDY: "/usr/libexec/PlistBuddy"          
 
       # - name: Test Create XCFramefork
@@ -137,8 +164,8 @@ jobs:
       
       - name: Update Package.swift
         if: env.should_build == 'true'
-        run: |          
-          sed -i '' -E 's,url:.*WebRTC-M[0-9]+.xcframework.zip,url: "https://github.com/${{ github.repository }}/releases/download/${{ env.next_release_tag }}/${{ env.output_name }},g' Package.swift 
+        run: |
+          sed -i '' -E 's,url:.*SmileCXWebRTC-M[0-9]+.xcframework.zip,url: "https://github.com/${{ github.repository }}/releases/download/${{ env.next_release_tag }}/${{ env.output_name }},g' Package.swift
           sed -i '' -E 's/checksum: .*/checksum: "${{ steps.create_xcframework.outputs.checksum }}"/g' Package.swift        
       
       - name: commit and push
@@ -157,7 +184,3 @@ jobs:
         run: |
           echo "Release notes: N/A\nWebRTC Branch: [branch-heads/${{ env.next_release_branch }}](https://chromium.googlesource.com/external/webrtc/+log/branch-heads/${{ env.next_release_branch }})" >> changelog.md
           gh release create "${{ env.next_release_tag }}" -d -t "M${{ env.next_release_milestone }}"  -F changelog.md "${{ env.output_dir }}/${{ env.output_name }}"
-
-      - name: Open PR
-        if: env.should_build == 'true'
-        run: gh pr create -f --head "M${{ env.next_release_milestone }}"
