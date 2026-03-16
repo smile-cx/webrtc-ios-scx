@@ -1,7 +1,7 @@
 #!/bin/bash
 # Update Package.swift for new release
 # Usage: ./update_package.sh <version> <url> <checksum>
-# Example: ./update_package.sh 144.7559.01 https://github.com/smile-cx/webrtc-ios-scx/releases/download/144.7559.01/SmileCXWebRTC-M144.xcframework.zip abc123...
+# Example: ./update_package.sh M144 https://github.com/smile-cx/webrtc-ios-scx/releases/download/M144/SmileCXWebRTC-M144.xcframework.zip abc123...
 
 set -e
 
@@ -11,7 +11,7 @@ CHECKSUM=$3
 
 if [ -z "$VERSION" ] || [ -z "$URL" ] || [ -z "$CHECKSUM" ]; then
     echo "Usage: $0 <version> <url> <checksum>"
-    echo "Example: $0 144.7559.01 https://github.com/.../SmileCXWebRTC-M144.xcframework.zip abc123..."
+    echo "Example: $0 M144 https://github.com/.../SmileCXWebRTC-M144.xcframework.zip abc123..."
     exit 1
 fi
 

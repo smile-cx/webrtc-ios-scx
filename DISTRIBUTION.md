@@ -8,14 +8,14 @@ Add to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/smile-cx/webrtc-ios-scx.git", from: "144.7559.01")
+    .package(url: "https://github.com/smile-cx/webrtc-ios-scx.git", from: "M144")
 ]
 ```
 
 Or in Xcode:
 1. File → Add Package Dependencies
 2. Enter URL: `https://github.com/smile-cx/webrtc-ios-scx.git`
-3. Select version
+3. Select version (e.g., M144, M146)
 
 ## For Maintainers - Publishing New Releases
 
@@ -24,7 +24,7 @@ Or in Xcode:
 The workflow automatically:
 - Builds WebRTC for the latest stable milestone
 - Creates XCFramework
-- Publishes release with `SmileCXWebRTC-M<version>.xcframework.zip`
+- Publishes release with tag `M<milestone>` and asset `SmileCXWebRTC-M<milestone>.xcframework.zip`
 
 ### 2. Update Package.swift
 
@@ -32,7 +32,7 @@ After release is published:
 
 ```bash
 # Calculate checksum
-VERSION=144.7559.01
+VERSION=M144
 curl -L "https://github.com/smile-cx/webrtc-ios-scx/releases/download/${VERSION}/SmileCXWebRTC-M144.xcframework.zip" | swift package compute-checksum
 
 # Update Package.swift with the script
@@ -58,5 +58,6 @@ Now SPM can resolve the package at this version!
 
 ## Versioning
 
-We use WebRTC milestone versions: `<milestone>.<branch>.0`
-- Example: `144.7559.01` = Milestone 144, branch 7559, patch 01
+We use simple milestone tags: `M<milestone>`
+- Examples: `M144`, `M146`, `M150`
+- Corresponds to WebRTC milestone versions
