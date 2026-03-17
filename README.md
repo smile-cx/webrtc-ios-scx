@@ -1,82 +1,121 @@
-# WebRTC Universal Binary
+# SmileCX WebRTC for iOS
 
-This is WebRTC framework in XCFramework format for iOS and macOS.
+Pre-built WebRTC XCFramework for iOS and macOS with symbol prefixing to prevent collisions with other WebRTC implementations.
 
-Google provides the official builds for iOS, if all you need is iOS build, get it from Google:
+## Overview
 
-- https://cocoapods.org/pods/GoogleWebRTC
-- https://webrtc.github.io/webrtc-org/native-code/ios/
+This repository provides WebRTC binaries for iOS/macOS with SmileCX-prefixed Objective-C symbols. This ensures that the Vivocha SDK won't have symbol collision with other libraries embedded in the customer app.
+
+### Symbol Isolation Strategy
+
+All public Objective-C classes are prefixed with `SCX`:
+- Original: `RTCAudioSession`, `RTCPeerConnection`, `RTCVideoTrack`
+- Prefixed: `SCXRTCAudioSession`, `SCXRTCPeerConnection`, `SCXRTCVideoTrack`
+
+This prevents conflicts with standard WebRTC libraries (using `RTC` prefix) or other prefixed versions.
 
 ## Installation
 
-### Manual 
+### Swift Package Manager
 
-Download the XCFramework at [Release](https://github.com/alexpiezo/WebRTC/releases) and drag it into your Xcode project.
-
-### Swift Package Manager 
-
-Requires Swift 5.3 / Xcode 12+.
-
-Add WebRTC repository https://github.com/alexpiezo/WebRTC.git via Swift Package Manager  
-
-Alternatively, to integrate via a Package.swift manifest instead of Xcode, you can add WebRTC to your dependencies array of your package with
+Add to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/alexpiezo/WebRTC.git", .upToNextMajor(from: "1.1.31567"))
+    .package(url: "https://github.com/smile-cx/webrtc-ios-scx.git", from: "M144")
 ]
 ```
 
-Then add a new run script phase script to your app’s target
+Or in Xcode:
+1. File → Add Package Dependencies
+2. Enter URL: `https://github.com/smile-cx/webrtc-ios-scx.git`
+3. Select version (e.g., M144, M146)
 
-```shellscript
-find "${CODESIGNING_FOLDER_PATH}" -name '*.framework' -print0 | while read -d $'\0' framework 
-do 
-    codesign --force --deep --sign "${EXPANDED_CODE_SIGN_IDENTITY}" --preserve-metadata=identifier,entitlements --timestamp=none "${framework}" 
-done
+### Manual Installation
+
+Download the XCFramework from [Releases](https://github.com/smile-cx/webrtc-ios-scx/releases) and drag it into your Xcode project.
+
+## Usage
+
+Import and use WebRTC classes with the `SCX` prefix:
+
+```swift
+import SmileCXWebRTC
+
+// Create peer connection factory
+let config = SCXRTCConfiguration()
+let constraints = SCXRTCMediaConstraints(mandatoryConstraints: nil, optionalConstraints: nil)
+let factory = SCXRTCPeerConnectionFactory()
+
+// Create peer connection
+let peerConnection = factory.peerConnection(with: config,
+                                           constraints: constraints,
+                                           delegate: self)
+
+// Create video track
+let videoSource = factory.videoSource()
+let videoTrack = factory.videoTrack(with: videoSource, trackId: "video0")
 ```
 
-### Building your own manually
+## Versioning
 
-#### Download webrtc
+We use milestone-based versioning: `M<milestone>`
 
-```shellscript
-git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
-export PATH=$PATH:/path/to/depot_tools
+- `M144` - WebRTC Milestone 144
+- `M146` - WebRTC Milestone 146
+- etc.
 
-fetch --nohooks webrtc_ios
+## How It Works
 
-git branch -r
-git checkout branch-heads/BRANCH
+### Build Process
 
-gclient sync
-```
+1. **WebRTC Build**: Patches are applied during build to add Objective-C type prefixes
+   - Uses `RTC_OBJC_TYPE` macro expansion with custom prefix
+   - Modifies build system to inject `SCX` prefix
+   - Outputs: XCFramework with prefixed symbols
 
-#### Generate iOS and macOS targets
+2. **Distribution**:
+   - XCFramework uploaded to GitHub releases
+   - Swift Package Manager references binary from GitHub
+   - `Package.swift` specifies download URL and checksum
 
-```shellscript
-gn gen ../out/mac_x64 --args='target_os="mac" target_cpu="x64" is_component_build=false is_debug=false rtc_libvpx_build_vp9=false enable_stripping=true rtc_enable_protobuf=false'
-
-gn gen ../out/ios_arm64 --args='target_os="ios" target_cpu="arm64" is_component_build=false use_xcode_clang=true is_debug=false  ios_deployment_target="10.0" rtc_libvpx_build_vp9=false use_goma=false ios_enable_code_signing=false enable_stripping=true rtc_enable_protobuf=false enable_ios_bitcode=false treat_warnings_as_errors=false'
-
-gn gen ../out/ios_x64 --args='target_os="ios" target_cpu="x64" is_component_build=false use_xcode_clang=true is_debug=true ios_deployment_target="10.0" rtc_libvpx_build_vp9=false use_goma=false ios_enable_code_signing=false enable_stripping=true rtc_enable_protobuf=false enable_ios_bitcode=false treat_warnings_as_errors=false'
-```
-
-#### Build the targets
-
-```shellscript
-ninja -C out/mac_x64 sdk:mac_framework_objc
-ninja -C out/ios_arm64 sdk:framework_objc
-ninja -C out/ios_x64 sdk:framework_objc
-```
-
-#### Generate XCFramework
-
-```shellscript
-xcodebuild -create-xcframework \
-	-framework out/ios_arm64/WebRTC.framework \
-	-framework out/ios_x64/WebRTC.framework \
-	-framework out/mac_x64/WebRTC.framework \
-	-output out/WebRTC.xcframework
+### Architecture
 
 ```
+webrtc-ios-scx/
+├── patches/                    # Patches for symbol prefixing
+│   └── objc_prefix_smile.patch # Objective-C type prefix modifications
+├── scripts/                    # Build scripts
+├── Package.swift              # SPM binary target configuration
+└── .github/workflows/         # CI/CD for WebRTC builds
+```
+
+## Platform Support
+
+- **iOS**: 14.0+
+- **macOS**: 11.0+
+
+Architectures:
+- iOS: arm64, arm64-simulator (Apple Silicon), x86_64-simulator (Intel)
+- macOS: arm64 (Apple Silicon), x86_64 (Intel)
+
+## Documentation
+
+- **[DISTRIBUTION.md](DISTRIBUTION.md)**: Complete guide for users and maintainers
+- **[BUILD_REPLICATION_PLAN.md](BUILD_REPLICATION_PLAN.md)**: How to replicate the build system
+
+## For Maintainers
+
+See [DISTRIBUTION.md](DISTRIBUTION.md) for:
+- Publishing new releases
+- Updating Package.swift
+- Build configuration
+
+## License
+
+WebRTC is licensed under the BSD 3-Clause License. See [LICENSE](LICENSE) for details.
+
+## References
+
+- [WebRTC Official Documentation](https://webrtc.github.io/webrtc-org/native-code/ios/)
+- [Official WebRTC iOS Builds](https://cocoapods.org/pods/GoogleWebRTC)
