@@ -1,7 +1,7 @@
 #!/bin/bash
 # Update Package.swift for new release
 # Usage: ./update_package.sh <version> <url> <checksum>
-# Example: ./update_package.sh M144 https://github.com/smile-cx/webrtc-ios-scx/releases/download/M144/SmileCXWebRTC-M144.xcframework.zip abc123...
+# Example: ./update_package.sh 146 https://github.com/smile-cx/webrtc-ios-scx/releases/download/146/SmileCXWebRTC-146.xcframework.zip abc123...
 
 set -e
 

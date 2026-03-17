@@ -22,14 +22,14 @@ Add to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/smile-cx/webrtc-ios-scx.git", from: "M144")
+    .package(url: "https://github.com/smile-cx/webrtc-ios-scx.git", from: "146")
 ]
 ```
 
 Or in Xcode:
 1. File → Add Package Dependencies
 2. Enter URL: `https://github.com/smile-cx/webrtc-ios-scx.git`
-3. Select version (e.g., M144, M146)
+3. Select version (e.g., 144, 146)
 
 ### Manual Installation
 
@@ -59,11 +59,13 @@ let videoTrack = factory.videoTrack(with: videoSource, trackId: "video0")
 
 ## Versioning
 
-We use milestone-based versioning: `M<milestone>`
+We use milestone-based versioning:
 
-- `M144` - WebRTC Milestone 144
-- `M146` - WebRTC Milestone 146
+- `144` - WebRTC Milestone 144
+- `146` - WebRTC Milestone 146
 - etc.
+
+Each release includes the full WebRTC version in the release notes (e.g., 146.7680.0).
 
 ## How It Works
 

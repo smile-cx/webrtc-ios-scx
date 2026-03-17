@@ -32,13 +32,13 @@ After release is published:
 
 ```bash
 # Calculate checksum
-VERSION=M144
-curl -L "https://github.com/smile-cx/webrtc-ios-scx/releases/download/${VERSION}/SmileCXWebRTC-M144.xcframework.zip" | swift package compute-checksum
+VERSION=146
+curl -L "https://github.com/smile-cx/webrtc-ios-scx/releases/download/${VERSION}/SmileCXWebRTC-${VERSION}.xcframework.zip" | swift package compute-checksum
 
 # Update Package.swift with the script
 ./update_package.sh \
     "${VERSION}" \
-    "https://github.com/smile-cx/webrtc-ios-scx/releases/download/${VERSION}/SmileCXWebRTC-M144.xcframework.zip" \
+    "https://github.com/smile-cx/webrtc-ios-scx/releases/download/${VERSION}/SmileCXWebRTC-${VERSION}.xcframework.zip" \
     "<checksum-from-above>"
 
 # Commit and push
@@ -50,7 +50,7 @@ git push origin main
 ### 3. Tag the Package.swift update
 
 ```bash
-git tag -a "${VERSION}" -m "Release ${VERSION}"
+git tag -a "${VERSION}" -m "Release M${VERSION}"
 git push origin "${VERSION}"
 ```
 
@@ -58,6 +58,13 @@ Now SPM can resolve the package at this version!
 
 ## Versioning
 
-We use simple milestone tags: `M<milestone>`
-- Examples: `M144`, `M146`, `M150`
-- Corresponds to WebRTC milestone versions
+We use milestone-based versioning:
+- Git tag: milestone number only (e.g., `144`, `146`, `150`)
+- Release title: milestone with M prefix (e.g., `M144`, `M146`)
+- Release notes: include full WebRTC version (e.g., `146.7680.0`)
+
+Example:
+- Git tag: `146`
+- Release title: `M146`
+- Release notes: "WebRTC Version: 146.7680.0"
+- SPM dependency: `.package(url: "...", from: "146")`
