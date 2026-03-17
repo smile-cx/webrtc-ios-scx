@@ -52,10 +52,10 @@ jobs:
       - name: Setup enviroment
         run: |
           echo "should_build=${{ env.next_release_branch > env.current_release_branch }}" >> $GITHUB_ENV
-          echo "output_name=SmileCXWebRTC-${{ env.next_release_milestone }}.${{ env.next_release_branch }}.0.xcframework.zip" >> $GITHUB_ENV
+          echo "output_name=SmileCXWebRTC-${{ env.next_release_milestone }}.xcframework.zip" >> $GITHUB_ENV
           echo "next_release_name=M${{ env.next_release_milestone }}" >> $GITHUB_ENV
-          echo "next_release_tag=${{ env.next_release_milestone }}.${{ env.next_release_branch }}.0" >> $GITHUB_ENV
-          echo "next_milestone_tag=${{ env.next_release_milestone }}" >> $GITHUB_ENV    
+          echo "next_release_tag=${{ env.next_release_milestone }}" >> $GITHUB_ENV
+          echo "next_full_version=${{ env.next_release_milestone }}.${{ env.next_release_branch }}.0" >> $GITHUB_ENV    
           
 
       - name: Prepare output directory
@@ -167,21 +167,21 @@ jobs:
           git add Package.swift
           git commit -m "Update Package.swift for release ${{ env.next_release_name }}"
 
-          # Create full version tag
-          git tag "${{ env.next_release_tag }}"
+          # Create full version tag (for tracking only)
+          git tag "${{ env.next_full_version }}"
 
-          # Create/update milestone tag (force to allow updates)
-          git tag -f "${{ env.next_milestone_tag }}"
+          # Create/update milestone tag (force to allow updates) - this is where release will be
+          git tag -f "${{ env.next_release_tag }}"
 
           # Push commit and both tags (force for milestone tag)
           git push origin master
-          git push origin "${{ env.next_release_tag }}"
-          git push -f origin "${{ env.next_milestone_tag }}"
+          git push origin "${{ env.next_full_version }}"
+          git push -f origin "${{ env.next_release_tag }}"
 
       - name: Create prerelease
         if: env.should_build == 'true'
         run: |
-          echo "WebRTC Version: ${{ env.next_release_tag }}" >> changelog.md
+          echo "WebRTC Version: ${{ env.next_full_version }}" >> changelog.md
           echo "" >> changelog.md
           echo "WebRTC Branch: [branch-heads/${{ env.next_release_branch }}](https://chromium.googlesource.com/external/webrtc/+log/branch-heads/${{ env.next_release_branch }})" >> changelog.md
           gh release create "${{ env.next_release_tag }}" -t "M${{ env.next_release_milestone }}"  -F changelog.md "${{ env.output_dir }}/${{ env.output_name }}"
