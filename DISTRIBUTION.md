@@ -8,7 +8,7 @@ Add to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/smile-cx/webrtc-ios-scx.git", from: "M144")
+    .package(url: "https://github.com/smile-cx/webrtc-ios-scx.git", from: "146")
 ]
 ```
 
