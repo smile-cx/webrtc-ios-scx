@@ -104,7 +104,6 @@ Architectures:
 ## Documentation
 
 - **[DISTRIBUTION.md](DISTRIBUTION.md)**: Complete guide for users and maintainers
-- **[BUILD_REPLICATION_PLAN.md](BUILD_REPLICATION_PLAN.md)**: How to replicate the build system
 
 ## For Maintainers
 
