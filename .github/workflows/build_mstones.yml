@@ -230,11 +230,31 @@ jobs:
             CHECKSUM="${{ steps.create_xcframework.outputs.checksum }}"
           fi
 
-          sed -i '' -E 's,url:.*SmileCXWebRTC-M[0-9]+.xcframework.zip,url: "https://github.com/${{ github.repository }}/releases/download/${{ env.next_release_tag }}/${{ env.output_name }},g' Package.swift
-          sed -i '' -E "s/checksum: .*/checksum: \"$CHECKSUM\"/g" Package.swift        
+          # Expected URL and checksum
+          EXPECTED_URL="https://github.com/${{ github.repository }}/releases/download/${{ env.next_release_tag }}/${{ env.output_name }}"
+
+          # Check current values
+          CURRENT_URL=$(grep -Eo 'url: "[^"]*"' Package.swift | sed 's/url: "\(.*\)"/\1/')
+          CURRENT_CHECKSUM=$(grep -Eo 'checksum: "[^"]*"' Package.swift | sed 's/checksum: "\(.*\)"/\1/')
+
+          # Only update if different
+          if [ "$CURRENT_URL" = "$EXPECTED_URL" ] && [ "$CURRENT_CHECKSUM" = "$CHECKSUM" ]; then
+            echo "Package.swift already up to date"
+            echo "package_swift_updated=false" >> $GITHUB_ENV
+          else
+            echo "Updating Package.swift..."
+            echo "  URL: $CURRENT_URL -> $EXPECTED_URL"
+            echo "  Checksum: $CURRENT_CHECKSUM -> $CHECKSUM"
+
+            # Update URL (match any SmileCXWebRTC xcframework URL)
+            sed -i '' -E "s,url: \"https://github.com/${{ github.repository }}/releases/download/[^/]+/SmileCXWebRTC-[^\"]+\",url: \"$EXPECTED_URL\",g" Package.swift
+            sed -i '' -E "s/checksum: \"[^\"]*\"/checksum: \"$CHECKSUM\"/g" Package.swift
+
+            echo "package_swift_updated=true" >> $GITHUB_ENV
+          fi        
       
       - name: Commit Package.swift and create tags
-        if: env.should_build == 'true' && steps.check_release.outputs.has_existing_xcframework != 'true'
+        if: env.should_build == 'true' && steps.check_release.outputs.has_existing_xcframework != 'true' && env.package_swift_updated == 'true'
         run: |
           git config --local user.email "${{ github.actor }}[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
@@ -249,19 +269,13 @@ jobs:
           git push -f origin "${{ env.next_release_tag }}"
 
       - name: Commit Package.swift only (no tag push)
-        if: steps.check_release.outputs.has_existing_xcframework == 'true'
+        if: steps.check_release.outputs.has_existing_xcframework == 'true' && env.package_swift_updated == 'true'
         run: |
           git config --local user.email "${{ github.actor }}[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add Package.swift
-
-          # Check if there are changes to commit
-          if git diff --cached --quiet; then
-            echo "No changes to Package.swift"
-          else
-            git commit -m "Update Package.swift checksum for release ${{ env.next_release_name }}"
-            git push origin master
-          fi
+          git commit -m "Update Package.swift for release ${{ env.next_release_name }}"
+          git push origin master
 
       - name: Create or update release
         if: env.should_build == 'true' || steps.check_release.outputs.has_existing_xcframework == 'true'
