@@ -101,16 +101,13 @@ Architectures:
 - iOS: arm64, arm64-simulator (Apple Silicon), x86_64-simulator (Intel)
 - macOS: arm64 (Apple Silicon), x86_64 (Intel)
 
-## Documentation
+## Build Process
 
-- **[DISTRIBUTION.md](DISTRIBUTION.md)**: Complete guide for users and maintainers
-
-## For Maintainers
-
-See [DISTRIBUTION.md](DISTRIBUTION.md) for:
-- Publishing new releases
-- Updating Package.swift
-- Build configuration
+Automated via GitHub Actions:
+- Daily checks for new WebRTC stable milestones
+- Builds XCFramework with symbol prefixing
+- Updates Package.swift automatically
+- Creates GitHub releases with milestone tags
 
 ## License and Third-Party Notices
 
