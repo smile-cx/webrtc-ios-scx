@@ -171,15 +171,11 @@ jobs:
           git add Package.swift
           git commit -m "Update Package.swift for release ${{ env.next_release_name }}"
 
-          # Create full version tag (for tracking only)
-          git tag "${{ env.next_full_version }}"
-
-          # Create/update milestone tag (force to allow updates) - this is where release will be
+          # Create/update milestone tag (force to allow updates)
           git tag -f "${{ env.next_release_tag }}"
 
-          # Push commit and both tags (force for milestone tag)
+          # Push commit and milestone tag
           git push origin master
-          git push origin "${{ env.next_full_version }}"
           git push -f origin "${{ env.next_release_tag }}"
 
       - name: Create prerelease
