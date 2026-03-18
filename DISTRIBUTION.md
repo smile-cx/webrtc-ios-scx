@@ -15,7 +15,7 @@ dependencies: [
 Or in Xcode:
 1. File → Add Package Dependencies
 2. Enter URL: `https://github.com/smile-cx/webrtc-ios-scx.git`
-3. Select version (e.g., M144, M146)
+3. Select version (e.g., 144, 146)
 
 ## For Maintainers - Publishing New Releases
 
@@ -66,7 +66,7 @@ We use **milestone-only tags** with full version in release notes:
 
 - **Milestone tag**: `146` (used for releases and SPM)
 - **Release notes**: "WebRTC Version: 146.7680.0" (full version info)
-- **Release title**: "M146"
+- **Release title**: "146"
 
 When a new branch version is available (e.g., 146.7680.1), the workflow:
 1. Detects new branch by parsing release notes

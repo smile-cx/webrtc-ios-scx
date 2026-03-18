@@ -73,7 +73,7 @@ jobs:
         run: |
           echo "should_build=${{ true }}" >> $GITHUB_ENV
           echo "output_name=SmileCXWebRTC-${{ env.next_release_milestone }}.xcframework.zip" >> $GITHUB_ENV
-          echo "next_release_name=M${{ env.next_release_milestone }}" >> $GITHUB_ENV
+          echo "next_release_name=${{ env.next_release_milestone }}" >> $GITHUB_ENV
           echo "next_release_tag=${{ env.next_release_milestone }}" >> $GITHUB_ENV
           echo "next_full_version=${{ env.next_release_milestone }}.${{ env.next_release_branch }}.0" >> $GITHUB_ENV
 
@@ -277,6 +277,6 @@ jobs:
             echo "✓ Release updated"
           else
             echo "Creating new release..."
-            gh release create "${{ env.next_release_tag }}" -t "M${{ env.next_release_milestone }}" -F changelog.md "${{ env.output_dir }}/${{ env.output_name }}"
+            gh release create "${{ env.next_release_tag }}" -t "${{ env.next_release_milestone }}" -F changelog.md "${{ env.output_dir }}/${{ env.output_name }}"
             echo "✓ Release created"
           fi
