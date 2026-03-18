@@ -1,0 +1,70 @@
+SmileCX WebRTC for iOS
+=======================
+
+This distribution contains modified WebRTC code with custom symbol prefixing
+and framework naming changes.
+
+Original WebRTC Project
+-----------------------
+Copyright (c) 2011, The WebRTC project authors. All rights reserved.
+
+This software is based on WebRTC, which is licensed under the BSD 3-Clause
+License. The complete license text is included in the LICENSE.md file in this
+repository.
+
+Modifications
+-------------
+This distribution includes modifications to the original WebRTC code:
+
+1. Objective-C Symbol Prefixing:
+   - All public Objective-C types are prefixed with "SCX"
+   - Constant type prefix changed to "kSCX"
+   - Modified via RTC_OBJC_TYPE_PREFIX macro in RTCMacros.h
+
+2. Framework Renaming:
+   - Framework name changed from "WebRTC.framework" to "SmileCXWebRTC.framework"
+   - Bundle identifier changed to "cx.smile.SmileCXWebRTC"
+
+3. Build System Modifications:
+   - Build configuration files modified (BUILD.gn)
+   - Framework generation scripts modified (Python build tools)
+   - Info.plist bundle metadata updated
+
+Modified Files:
+- sdk/objc/base/RTCMacros.h
+- sdk/BUILD.gn
+- sdk/objc/Info.plist
+- tools_webrtc/ios/generate_umbrella_header.py
+- tools_webrtc/apple/copy_framework_header.py
+- tools_webrtc/ios/build_ios_libs.py
+
+Purpose: These modifications enable symbol isolation to prevent collisions
+between the Vivocha SDK and other WebRTC implementations that may be included
+in customer applications.
+
+Distribution: This modified version is distributed as a binary XCFramework
+via GitHub Releases and Swift Package Manager.
+
+Third-Party Components
+----------------------
+WebRTC includes several third-party components, each with their own licenses.
+Apache 2.0 licensed components included in this distribution:
+- abseil-cpp
+- boringssl
+- protobuf
+
+All third-party license texts are preserved in the LICENSE.md file in this
+repository.
+
+For the complete list of components and their licenses, see LICENSE.md.
+
+Source Code Availability
+-------------------------
+The patches and build system for this modified distribution are available at:
+https://github.com/smile-cx/webrtc-ios-scx
+
+Original WebRTC source code is available at:
+https://webrtc.googlesource.com/src
+
+This is not an official WebRTC distribution. For the official WebRTC builds,
+visit: https://webrtc.github.io/webrtc-org/

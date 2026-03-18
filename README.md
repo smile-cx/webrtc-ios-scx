@@ -113,11 +113,32 @@ See [DISTRIBUTION.md](DISTRIBUTION.md) for:
 - Updating Package.swift
 - Build configuration
 
-## License
+## License and Third-Party Notices
 
-WebRTC is licensed under the BSD 3-Clause License. See [LICENSE](LICENSE) for details.
+This repository contains a modified distribution of WebRTC with custom symbol prefixing and framework naming changes. It should not be confused with the official WebRTC distribution.
+
+WebRTC is licensed under the BSD 3-Clause License. This distribution also includes third-party components licensed under Apache 2.0 and other open-source licenses.
+
+**License texts**: See [LICENSE.md](LICENSE.md) for complete license texts of WebRTC and all third-party components.
+
+**Modification notices**: See [NOTICE](NOTICE) for detailed information about the modifications made in this distribution.
+
+### Modifications
+
+This distribution includes the following modifications to the original WebRTC code:
+
+1. **Objective-C Symbol Prefixing**: All public Objective-C types are prefixed with `SCX` to prevent symbol collisions
+2. **Framework Renaming**: Framework renamed from `WebRTC.framework` to `SmileCXWebRTC.framework`
+3. **Build System Changes**: Build configuration and generation scripts modified to support the above changes
+
+These modifications are applied via patches during the build process. The patches and build scripts are available in this repository under the `patches/` and `scripts/` directories.
+
+### Purpose
+
+These modifications enable symbol isolation to prevent collisions between the Vivocha SDK and other WebRTC implementations that may be included in customer applications.
 
 ## References
 
 - [WebRTC Official Documentation](https://webrtc.github.io/webrtc-org/native-code/ios/)
 - [Official WebRTC iOS Builds](https://cocoapods.org/pods/GoogleWebRTC)
+- [Original WebRTC Source](https://webrtc.googlesource.com/src)

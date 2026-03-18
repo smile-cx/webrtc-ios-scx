@@ -75,6 +75,11 @@ jobs:
         run: |
           cd src
           echo "Applying apple_prefix_smilecx patch with fuzzy matching..."
+          echo ""
+          echo "License Compliance: This patch modifies WebRTC source code (BSD 3-Clause licensed)"
+          echo "for symbol prefixing and framework renaming. Original license texts and"
+          echo "copyright notices are preserved in LICENSE.md and NOTICE files."
+          echo ""
 
           # Try git apply first (more forgiving)
           if git apply --check --verbose "${GITHUB_WORKSPACE}/patches/apple_prefix_smilecx.patch" 2>&1; then
@@ -127,11 +132,13 @@ jobs:
           TARGET_CPU: "arm64"
           ENVIROMENT: "device"
             
-      - name: Create XCFramefork
+      - name: Create XCFramework
         id: create_xcframework
         if: env.should_build == 'true'
         run: |
+          echo "Creating XCFramework with license compliance files..."
           source "${GITHUB_WORKSPACE}/scripts/create_xcframework.sh"
+          echo "✓ XCFramework created with LICENSE.md and NOTICE files"
           cd "${{ env.output_dir }}"
           zip --symlinks -r ${{ env.output_name }} SmileCXWebRTC.xcframework/
           CHECKSUM=$(shasum -a 256 ${{ env.output_name }} | awk '{ print $1 }')

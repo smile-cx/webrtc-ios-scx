@@ -58,6 +58,17 @@ add_library 0 ios*device ios ios
 add_library 1 ios*simulator ios-simulator ios simulator
 add_library 2 mac* macos macos
 
+# Copy LICENSE and NOTICE files to XCFramework root for compliance
+if [ -f "${GITHUB_WORKSPACE}/LICENSE.md" ]; then
+    cp "${GITHUB_WORKSPACE}/LICENSE.md" "${XCFRAMEWORK_DIR}/LICENSE.md"
+    echo "✓ Copied LICENSE.md to XCFramework"
+fi
+
+if [ -f "${GITHUB_WORKSPACE}/NOTICE" ]; then
+    cp "${GITHUB_WORKSPACE}/NOTICE" "${XCFRAMEWORK_DIR}/NOTICE"
+    echo "✓ Copied NOTICE to XCFramework"
+fi
+
 # cd "${OUTPUT_DIR}"
 
 # NOW=$(date -u +"%Y-%m-%dT%H-%M-%S")
