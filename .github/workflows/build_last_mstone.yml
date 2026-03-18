@@ -38,12 +38,32 @@ jobs:
           gh auth login --with-token < token.txt
           rm token.txt          
       
-      - name: Getting WebRTC release        
+      - name: Getting WebRTC release
         run: |
-          IFS=$'.' current_release_tag=($(gh api repos/${{ github.repository }}/releases | jq -r ".[0].tag_name"))          
-          milestones=$( curl -sL "https://chromiumdash.appspot.com/fetch_milestones" | jq -r 'map(select(.schedule_phase | . != null) | select(.schedule_phase=="stable" or .schedule_phase=="stable_cut"))' )         
-          echo "current_release_milestone=${current_release_tag[0]:-0}" >> $GITHUB_ENV
-          echo "current_release_branch=${current_release_tag[1]:-0}" >> $GITHUB_ENV
+          # Get latest release info
+          LATEST_RELEASE=$(gh api repos/${{ github.repository }}/releases | jq -r '.[0]')
+          LATEST_TAG=$(echo "$LATEST_RELEASE" | jq -r '.tag_name')
+          LATEST_BODY=$(echo "$LATEST_RELEASE" | jq -r '.body')
+
+          # Extract milestone from tag (e.g., "146" from tag "146")
+          current_release_milestone=$LATEST_TAG
+
+          # Extract branch from release notes (e.g., "7680" from "WebRTC Version: 146.7680.0")
+          if echo "$LATEST_BODY" | grep -q "WebRTC Version:"; then
+            FULL_VERSION=$(echo "$LATEST_BODY" | grep "WebRTC Version:" | head -1 | sed 's/.*WebRTC Version: //' | tr -d ' ')
+            IFS='.' read -ra VERSION_PARTS <<< "$FULL_VERSION"
+            current_release_branch=${VERSION_PARTS[1]:-0}
+            echo "Found current release: M$current_release_milestone (branch $current_release_branch)"
+          else
+            echo "⚠️ Could not parse branch from release notes, assuming 0"
+            current_release_branch=0
+          fi
+
+          # Get next stable milestone
+          milestones=$( curl -sL "https://chromiumdash.appspot.com/fetch_milestones" | jq -r 'map(select(.schedule_phase | . != null) | select(.schedule_phase=="stable" or .schedule_phase=="stable_cut"))' )
+
+          echo "current_release_milestone=$current_release_milestone" >> $GITHUB_ENV
+          echo "current_release_branch=$current_release_branch" >> $GITHUB_ENV
           echo "next_release_milestone=$(echo $milestones  | jq -r ".[0].milestone")" >> $GITHUB_ENV
           echo "next_release_branch=$(echo $milestones  | jq -r ".[0].webrtc_branch")" >> $GITHUB_ENV
           
@@ -53,16 +73,54 @@ jobs:
           echo "output_name=SmileCXWebRTC-${{ env.next_release_milestone }}.xcframework.zip" >> $GITHUB_ENV
           echo "next_release_name=M${{ env.next_release_milestone }}" >> $GITHUB_ENV
           echo "next_release_tag=${{ env.next_release_milestone }}" >> $GITHUB_ENV
-          echo "next_full_version=${{ env.next_release_milestone }}.${{ env.next_release_branch }}.0" >> $GITHUB_ENV    
-          
+          echo "next_full_version=${{ env.next_release_milestone }}.${{ env.next_release_branch }}.0" >> $GITHUB_ENV
+
+      - name: Check if release exists and needs update
+        id: check_release
+        run: |
+          # This runs AFTER should_build is determined by branch comparison
+          # should_build=true means new branch available (need full rebuild)
+          # should_build=false means same branch (can reuse XCFramework if exists)
+
+          if [ "${{ env.should_build }}" = "true" ]; then
+            echo "New branch ${{ env.next_release_branch }} available - will rebuild from scratch"
+            echo "has_existing_xcframework=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # should_build=false, check if we can reuse existing XCFramework
+          if gh release view "${{ env.next_release_tag }}" > /dev/null 2>&1; then
+            echo "Release ${{ env.next_release_tag }} exists with same branch"
+
+            # Try to download existing XCFramework
+            if gh release download "${{ env.next_release_tag }}" -p "${{ env.output_name }}" --clobber 2>/dev/null; then
+              echo "✓ Found existing XCFramework in release"
+              echo "has_existing_xcframework=true" >> $GITHUB_OUTPUT
+
+              # Extract checksum from existing XCFramework
+              CHECKSUM=$(shasum -a 256 "${{ env.output_name }}" | awk '{ print $1 }')
+              echo "existing_checksum=$CHECKSUM" >> $GITHUB_OUTPUT
+              echo "✓ Extracted checksum: $CHECKSUM"
+
+              # Move to output directory for Package.swift update
+              mkdir -p "${{ env.output_dir }}"
+              mv "${{ env.output_name }}" "${{ env.output_dir }}/"
+            else
+              echo "Release exists but no XCFramework found"
+              echo "has_existing_xcframework=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "Release does not exist for this milestone"
+            echo "has_existing_xcframework=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Prepare output directory
-        if: env.should_build == 'true'
+        if: env.should_build == 'true' && steps.check_release.outputs.has_existing_xcframework != 'true'
         run: |
           mkdir "${{ env.output_dir }}"
 
       - name: Checkout WebRTC
-        if: env.should_build == 'true'
+        if: env.should_build == 'true' && steps.check_release.outputs.has_existing_xcframework != 'true'
         run: |
           source "${GITHUB_WORKSPACE}/scripts/checkout_webrtc.sh";
           echo "${PATH}" >> $GITHUB_PATH
@@ -71,7 +129,7 @@ jobs:
           WEBRTC_BRANCH: ${{ env.next_release_branch  }}
 
       - name: Apply SmileCX patches
-        if: env.should_build == 'true'
+        if: env.should_build == 'true' && steps.check_release.outputs.has_existing_xcframework != 'true'
         run: |
           cd src
           echo "Applying apple_prefix_smilecx patch with fuzzy matching..."
@@ -103,30 +161,30 @@ jobs:
           grep -q "cx.smile.SmileCXWebRTC" sdk/objc/Info.plist && echo "✓ Bundle ID updated" || echo "✗ Bundle ID NOT updated"
 
       - name: Build ios x64 simulator
-        if: env.should_build == 'true'
+        if: env.should_build == 'true' && steps.check_release.outputs.has_existing_xcframework != 'true'
         run: |
           cd src
-          source "${GITHUB_WORKSPACE}/scripts/build_webrtc.sh" 
+          source "${GITHUB_WORKSPACE}/scripts/build_webrtc.sh"
         env:
           TARGET_OS: "ios"
           TARGET_CPU: "x64"
           ENVIROMENT: "simulator"
 
       - name: Build ios arm64 simulator
-        if: env.should_build == 'true'
+        if: env.should_build == 'true' && steps.check_release.outputs.has_existing_xcframework != 'true'
         run: |
           cd src
-          source "${GITHUB_WORKSPACE}/scripts/build_webrtc.sh" 
+          source "${GITHUB_WORKSPACE}/scripts/build_webrtc.sh"
         env:
           TARGET_OS: "ios"
           TARGET_CPU: "arm64"
           ENVIROMENT: "simulator"
 
       - name: Build ios arm64 device
-        if: env.should_build == 'true'
+        if: env.should_build == 'true' && steps.check_release.outputs.has_existing_xcframework != 'true'
         run: |
           cd src
-          source "${GITHUB_WORKSPACE}/scripts/build_webrtc.sh" 
+          source "${GITHUB_WORKSPACE}/scripts/build_webrtc.sh"
         env:
           TARGET_OS: "ios"
           TARGET_CPU: "arm64"
@@ -134,7 +192,7 @@ jobs:
             
       - name: Create XCFramework
         id: create_xcframework
-        if: env.should_build == 'true'
+        if: env.should_build == 'true' && steps.check_release.outputs.has_existing_xcframework != 'true'
         run: |
           echo "Creating XCFramework with license compliance files..."
           source "${GITHUB_WORKSPACE}/scripts/create_xcframework.sh"
@@ -146,7 +204,14 @@ jobs:
           echo ::set-output name=checksum::$CHECKSUM
         env:
           XCFRAMEWORK_NAME: "SmileCXWebRTC"
-          PLISTBUDDY: "/usr/libexec/PlistBuddy"          
+          PLISTBUDDY: "/usr/libexec/PlistBuddy"
+
+      - name: Set checksum from existing XCFramework
+        if: env.should_build == 'false' && steps.check_release.outputs.has_existing_xcframework == 'true'
+        run: |
+          echo "Using existing XCFramework checksum"
+          echo "checksum=${{ steps.check_release.outputs.existing_checksum }}" >> $GITHUB_OUTPUT
+        id: existing_checksum          
 
       # - name: Test Create XCFramefork
       #   id: create_xcframework
@@ -158,13 +223,20 @@ jobs:
       #     echo ::set-output name=checksum::$CHECKSUM
       
       - name: Update Package.swift
-        if: env.should_build == 'true'
+        if: env.should_build == 'true' || steps.check_release.outputs.has_existing_xcframework == 'true'
         run: |
+          # Use checksum from new build or existing XCFramework
+          if [ "${{ env.should_build }}" = "true" ]; then
+            CHECKSUM="${{ steps.create_xcframework.outputs.checksum }}"
+          else
+            CHECKSUM="${{ steps.check_release.outputs.existing_checksum }}"
+          fi
+
           sed -i '' -E 's,url:.*SmileCXWebRTC-M[0-9]+.xcframework.zip,url: "https://github.com/${{ github.repository }}/releases/download/${{ env.next_release_tag }}/${{ env.output_name }},g' Package.swift
-          sed -i '' -E 's/checksum: .*/checksum: "${{ steps.create_xcframework.outputs.checksum }}"/g' Package.swift        
+          sed -i '' -E "s/checksum: .*/checksum: \"$CHECKSUM\"/g" Package.swift        
       
       - name: Commit Package.swift and create tags
-        if: env.should_build == 'true'
+        if: env.should_build == 'true' && steps.check_release.outputs.has_existing_xcframework != 'true'
         run: |
           git config --local user.email "${{ github.actor }}[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
@@ -178,10 +250,35 @@ jobs:
           git push origin master
           git push -f origin "${{ env.next_release_tag }}"
 
-      - name: Create prerelease
-        if: env.should_build == 'true'
+      - name: Commit Package.swift only (no tag push)
+        if: env.should_build == 'false' && steps.check_release.outputs.has_existing_xcframework == 'true'
+        run: |
+          git config --local user.email "${{ github.actor }}[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add Package.swift
+
+          # Check if there are changes to commit
+          if git diff --cached --quiet; then
+            echo "No changes to Package.swift"
+          else
+            git commit -m "Update Package.swift checksum for release ${{ env.next_release_name }}"
+            git push origin master
+          fi
+
+      - name: Create or update release
+        if: env.should_build == 'true' || steps.check_release.outputs.has_existing_xcframework == 'true'
         run: |
           echo "WebRTC Version: ${{ env.next_full_version }}" >> changelog.md
           echo "" >> changelog.md
           echo "WebRTC Branch: [branch-heads/${{ env.next_release_branch }}](https://chromium.googlesource.com/external/webrtc/+log/branch-heads/${{ env.next_release_branch }})" >> changelog.md
-          gh release create "${{ env.next_release_tag }}" -t "M${{ env.next_release_milestone }}"  -F changelog.md "${{ env.output_dir }}/${{ env.output_name }}"
+
+          # Check if release exists
+          if gh release view "${{ env.next_release_tag }}" > /dev/null 2>&1; then
+            echo "Updating existing release..."
+            gh release upload "${{ env.next_release_tag }}" "${{ env.output_dir }}/${{ env.output_name }}" --clobber
+            echo "✓ Release updated"
+          else
+            echo "Creating new release..."
+            gh release create "${{ env.next_release_tag }}" -t "M${{ env.next_release_milestone }}" -F changelog.md "${{ env.output_dir }}/${{ env.output_name }}"
+            echo "✓ Release created"
+          fi
