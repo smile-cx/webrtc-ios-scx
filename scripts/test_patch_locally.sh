@@ -14,6 +14,7 @@ cd "$TEST_DIR"
 echo "📥 Checking out depot_tools..."
 git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
 export PATH="$TEST_DIR/depot_tools:$PATH"
+ensure_bootstrap
 
 echo "📥 Fetching WebRTC iOS..."
 fetch --nohooks webrtc_ios

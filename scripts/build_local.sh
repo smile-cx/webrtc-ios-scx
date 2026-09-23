@@ -31,6 +31,7 @@ else
 fi
 
 export PATH="$(pwd)/depot_tools:$PATH"
+ensure_bootstrap
 
 # Step 2: Fetch WebRTC iOS
 if [ ! -d src ]; then
