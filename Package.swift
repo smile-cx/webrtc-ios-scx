@@ -17,8 +17,8 @@ let package = Package(
     targets: [
         .binaryTarget(
             name: "SmileCXWebRTC",
-            url: "https://github.com/smile-cx/webrtc-ios-scx/releases/download/158.0.0/SmileCXWebRTC-158.xcframework.zip",
-            checksum: "1a9d4fc85149014526ad2c300225e8281f51586d2207e7eb547eaa482b0bc4e4"
+            url: "https://github.com/smile-cx/webrtc-ios-scx/releases/download/159.0.0/SmileCXWebRTC-159.xcframework.zip",
+            checksum: "bce15f174d3b704a8c31fd9ee16bd1a6eb03af33db44ed889a2b5741b75d66cb"
         )
     ]
 )
